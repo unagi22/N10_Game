@@ -23,9 +23,9 @@ export function GameHeader() {
       </div>
       
       <div className="text-center max-w-md mx-auto px-8 sm:px-4">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2">N10 Igra</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2">N10 Game</h1>
         <p className="text-xs sm:text-sm text-gray-600 leading-snug max-w-[200px] sm:max-w-none mx-auto">
-          Poređaj brojeve u polja 1-10 od najmanjeg do najvećeg
+          Place random numbers (1-100) in just 10 spots... in perfect order! Ridiculously hard? Yes. But hey, if you win, brag all you want - you've earned it! 🏆
         </p>
       </div>
 
