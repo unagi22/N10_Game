@@ -9,13 +9,15 @@ interface GameStore extends GameState {
   generateNumber: () => void;
   resetGame: () => void;
   useHelp: () => void;
+  resetHelps: () => void;
   startBeastMode: () => void;
   updateBeastTimer: (time: number) => void;
   endBeastMode: () => void;
+  HELP_COOLDOWN: number;
 }
 
 const HELP_LIMIT = 2;
-const HELP_COOLDOWN = 2 * 60 * 60 * 1000; // 2 hours in milliseconds
+const HELP_COOLDOWN = 60 * 60 * 1000; // 1 hour in milliseconds
 const BEAST_MODE_TIME = 12;
 const BEAST_MODE_COUNTDOWN = 3;
 
@@ -33,6 +35,7 @@ export const useGameStore = create<GameStore>()(
       beastMode: false,
       beastTimer: null,
       countdown: null,
+      HELP_COOLDOWN,
       
       placeNumber: (position) => {
         const state = get();
@@ -81,30 +84,35 @@ export const useGameStore = create<GameStore>()(
         });
       },
 
+      resetHelps: () => {
+        set({ 
+          helpCount: 0,
+          lastHelpTimestamp: null
+        });
+      },
+      
       useHelp: () => {
         const state = get();
         const now = Date.now();
         
         // Reset help count if cooldown has passed
         if (state.lastHelpTimestamp && now - state.lastHelpTimestamp >= HELP_COOLDOWN) {
-          set({ helpCount: 0, lastHelpTimestamp: null }); // Reset timestamp to allow fresh start
-          // Call useHelp again to handle the actual help usage
-          get().useHelp();
+          set({ 
+            helpCount: 0,
+            lastHelpTimestamp: null,
+            currentNumber: generateUniqueNumber(state.slots)
+          });
           return;
-        } 
-        
-        // Initialize timestamp if not set
-        if (!state.lastHelpTimestamp && state.helpCount === 0) {
-          set({ lastHelpTimestamp: now });
         }
         
         // Use help if available
         if (state.helpCount < HELP_LIMIT) {
-          set(state => ({ 
-            helpCount: state.helpCount + 1,
-            lastHelpTimestamp: state.helpCount + 1 >= HELP_LIMIT ? now : state.lastHelpTimestamp,
+          const newHelpCount = state.helpCount + 1;
+          set({ 
+            helpCount: newHelpCount,
+            lastHelpTimestamp: newHelpCount === HELP_LIMIT ? now : null,
             currentNumber: generateUniqueNumber(state.slots)
-          }));
+          });
         }
       },
 

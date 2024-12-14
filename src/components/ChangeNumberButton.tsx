@@ -3,10 +3,10 @@ import { Wand2, Timer } from 'lucide-react';
 import { useGameStore } from '../store/gameStore';
 import { cn } from '../utils/cn';
 
-function formatTimeRemaining(timestamp: number | null): string {
+function formatTimeRemaining(timestamp: number | null, cooldown: number): string {
   if (!timestamp) return '';
   const now = Date.now();
-  const diff = Math.max(0, (timestamp + 2 * 60 * 60 * 1000) - now);
+  const diff = Math.max(0, (timestamp + cooldown) - now);
   const hours = Math.floor(diff / (60 * 60 * 1000));
   const minutes = Math.floor((diff % (60 * 60 * 1000)) / 60000);
   const seconds = Math.floor((diff % 60000) / 1000);
@@ -14,64 +14,75 @@ function formatTimeRemaining(timestamp: number | null): string {
 }
 
 export function ChangeNumberButton() {
-  const { helpCount, lastHelpTimestamp, useHelp, beastMode } = useGameStore();
-  const [timeLeft, setTimeLeft] = useState(formatTimeRemaining(lastHelpTimestamp));
+  const { helpCount, lastHelpTimestamp, useHelp, beastMode, HELP_COOLDOWN } = useGameStore();
+  const [timeLeft, setTimeLeft] = useState('');
   const [showAvailableMessage, setShowAvailableMessage] = useState(false);
   
+  // Update timeLeft whenever lastHelpTimestamp changes
   useEffect(() => {
-    if (helpCount >= 2) {
-      const interval = setInterval(() => {
+    if (lastHelpTimestamp) {
+      setTimeLeft(formatTimeRemaining(lastHelpTimestamp, HELP_COOLDOWN));
+    } else {
+      setTimeLeft('');
+    }
+  }, [lastHelpTimestamp, HELP_COOLDOWN]);
+  
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    
+    if (lastHelpTimestamp) {
+      interval = setInterval(() => {
         const now = Date.now();
-        if (lastHelpTimestamp && now - lastHelpTimestamp >= 2 * 60 * 60 * 1000) {
+        if (now - lastHelpTimestamp >= HELP_COOLDOWN) {
           setShowAvailableMessage(true);
           setTimeLeft('');
-          clearInterval(interval);
+          
+          // After 1 second, hide the message
+          setTimeout(() => {
+            setShowAvailableMessage(false);
+            useHelp(); // This will reset the helps
+          }, 1000);
+          
+          if (interval) {
+            clearInterval(interval);
+          }
         } else {
-          setTimeLeft(formatTimeRemaining(lastHelpTimestamp));
+          setTimeLeft(formatTimeRemaining(lastHelpTimestamp, HELP_COOLDOWN));
         }
       }, 1000);
-      return () => clearInterval(interval);
-    } else {
-      setShowAvailableMessage(false);
     }
-  }, [helpCount, lastHelpTimestamp]);
-
-  useEffect(() => {
-    if (showAvailableMessage) {
-      const timeout = setTimeout(() => {
-        setShowAvailableMessage(false);
-      }, 3000); // Hide the message after 3 seconds
-      return () => clearTimeout(timeout);
-    }
-  }, [showAvailableMessage]);
+    
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [lastHelpTimestamp, HELP_COOLDOWN, useHelp]);
 
   if (beastMode) return null;
 
   const helpsLeft = 2 - helpCount;
-  const isDisabled = helpsLeft <= 0 && !showAvailableMessage;
+  const isDisabled = showAvailableMessage || (lastHelpTimestamp !== null && helpsLeft <= 0);
 
   return (
     <button
-      onClick={() => {
-        useHelp();
-        setShowAvailableMessage(false);
-      }}
+      onClick={useHelp}
       disabled={isDisabled}
       className={cn(
         "w-full flex items-center justify-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors font-medium",
-        isDisabled 
+        showAvailableMessage
+          ? "bg-green-100 text-green-700 cursor-not-allowed"
+          : isDisabled 
           ? "bg-gray-100 text-gray-500 cursor-not-allowed"
-          : showAvailableMessage
-          ? "bg-green-100 hover:bg-green-200 text-green-700"
           : "bg-purple-100 hover:bg-purple-200 text-purple-700"
       )}
     >
       {showAvailableMessage ? (
         <>
           <Wand2 className="w-4 h-4" />
-          <span>Help is now available! (2 left)</span>
+          <span>Help is now available!</span>
         </>
-      ) : isDisabled ? (
+      ) : isDisabled && timeLeft ? (
         <>
           <Timer className="w-4 h-4" />
           <span>Change a number ({timeLeft})</span>
