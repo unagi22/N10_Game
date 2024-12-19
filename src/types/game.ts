@@ -1,12 +1,17 @@
 export interface GameState {
   slots: (number | null)[];
   currentNumber: number | null;
+  nextNumbers: [number | null, number | null];
   gameOver: boolean;
   victory: boolean;
   score: number;
   brags: number;
   helpCount: number;
   lastHelpTimestamp: number | null;
+  bonusHelps: number;
+  lastBonusHelpCheck: number | null;
+  totalScore: number;
+  level: number;
   beastMode: boolean;
   beastTimer: number | null;
   countdown: number | null;

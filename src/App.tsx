@@ -9,17 +9,20 @@ import { ChangeNumberButton } from './components/ChangeNumberButton';
 import { GameControls } from './components/GameControls';
 import { cn } from './utils/cn';
 import { GameHeader } from './components/GameHeader';
+import { LevelUpModal } from './components/LevelUpModal';
 
 export default function App() {
   const { 
-    slots, currentNumber, gameOver, victory, score, brags, 
-    beastMode, beastTimer, countdown,
+    slots, currentNumber, nextNumbers, gameOver, victory, score, brags, 
+    beastMode, beastTimer, countdown, totalScore, level,
     placeNumber, generateNumber, resetGame, startBeastMode, updateBeastTimer, endBeastMode 
   } = useGameStore();
 
   const [showVictoryModal, setShowVictoryModal] = useState(false);
   const [showGameOverModal, setShowGameOverModal] = useState(false);
   const [showBeastModeModal, setShowBeastModeModal] = useState(false);
+  const [showLevelUpModal, setShowLevelUpModal] = useState(false);
+  const [levelUpInfo, setLevelUpInfo] = useState<{ level: number; name: string; reward: number } | null>(null);
 
   useEffect(() => {
     if (victory) {
@@ -96,9 +99,14 @@ export default function App() {
     }
   };
 
+  const handleLevelUp = (level: number, name: string, reward: number) => {
+    setLevelUpInfo({ level, name, reward });
+    setShowLevelUpModal(true);
+  };
+
   const gameState = { 
-    slots, currentNumber, gameOver, victory, score, brags,
-    beastMode, beastTimer, countdown
+    slots, currentNumber, nextNumbers, gameOver, victory, score, brags,
+    beastMode, beastTimer, countdown, totalScore, level
   };
 
   return (
@@ -112,6 +120,8 @@ export default function App() {
         )}>
           <GameControls 
             score={score}
+            totalScore={totalScore}
+            level={level}
             gameOver={gameOver}
             beastMode={beastMode}
             onBeastMode={handleBeastModeClick}
@@ -164,6 +174,17 @@ export default function App() {
         onOverlayClick={() => setShowBeastModeModal(false)}
         onStart={handleBeastModeStart}
       />
+
+      {levelUpInfo && (
+        <LevelUpModal
+          isOpen={showLevelUpModal}
+          onClose={() => setShowLevelUpModal(false)}
+          onOverlayClick={() => setShowLevelUpModal(false)}
+          level={levelUpInfo.level}
+          levelName={levelUpInfo.name}
+          bonusHelps={levelUpInfo.reward}
+        />
+      )}
     </div>
   );
 }

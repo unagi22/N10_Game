@@ -1,6 +1,6 @@
 import React from 'react';
 import { GameState } from '../types/game';
-import { Timer, Zap } from 'lucide-react';
+import { Timer, Zap, ChevronRight } from 'lucide-react';
 import { cn } from '../utils/cn';
 
 interface GameStatusProps {
@@ -36,6 +36,11 @@ export function GameStatus({ state }: GameStatusProps) {
     state.beastMode ? "text-red-700" : "text-blue-700"
   );
 
+  const nextNumberClass = cn(
+    "text-xl font-bold",
+    state.beastMode ? "text-red-700" : "text-blue-700"
+  );
+
   return (
     <div className={cardClass}>
       {state.countdown !== null ? (
@@ -51,12 +56,36 @@ export function GameStatus({ state }: GameStatusProps) {
               <span className="text-xl font-bold text-red-700">{state.beastTimer}s</span>
             </div>
           )}
-          <p className={cn("text-sm mb-1", state.beastMode ? "text-red-600" : "text-blue-600")}>
-            Current Number
-          </p>
-          <p className={numberClass}>
-            {state.currentNumber ?? '...'}
-          </p>
+          <div className="flex items-center justify-center gap-4">
+            {!state.beastMode && state.nextNumbers[1] !== null && state.slots.filter(slot => slot !== null).length < 8 && (
+              <div className="text-center opacity-25">
+                <p className={cn("text-sm mb-1", state.beastMode ? "text-red-600" : "text-blue-600")}>
+                  After
+                </p>
+                <p className={nextNumberClass}>
+                  {state.nextNumbers[1]}
+                </p>
+              </div>
+            )}
+            {!state.beastMode && state.nextNumbers[0] !== null && state.slots.filter(slot => slot !== null).length < 9 && (
+              <div className="text-center opacity-50">
+                <p className={cn("text-sm mb-1", state.beastMode ? "text-red-600" : "text-blue-600")}>
+                  Next
+                </p>
+                <p className={nextNumberClass}>
+                  {state.nextNumbers[0]}
+                </p>
+              </div>
+            )}
+            <div className="text-center">
+              <p className={cn("text-sm mb-1", state.beastMode ? "text-red-600" : "text-blue-600")}>
+                Current
+              </p>
+              <p className={numberClass}>
+                {state.currentNumber ?? '...'}
+              </p>
+            </div>
+          </div>
         </>
       )}
     </div>
