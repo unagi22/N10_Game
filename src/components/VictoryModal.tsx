@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { Trophy, Zap } from 'lucide-react';
 import { cn } from '../utils/cn';
+import { Modal, ModalButton } from './Modal';
 
 interface VictoryModalProps {
   isOpen: boolean;
@@ -20,7 +21,7 @@ export function VictoryModal({ isOpen, onClose, onOverlayClick, score, beastMode
         startVelocity: beastMode ? 45 : 30, 
         spread: beastMode ? 360 : 180, 
         ticks: 60, 
-        zIndex: 0 
+        zIndex: 60 
       };
 
       function randomInRange(min: number, max: number) {
@@ -54,57 +55,24 @@ export function VictoryModal({ isOpen, onClose, onOverlayClick, score, beastMode
   if (!isOpen) return null;
 
   return (
-    <div 
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-      onClick={onOverlayClick}
-    >
-      <div 
-        className={cn(
-          "rounded-xl p-6 max-w-sm w-full mx-4 relative",
-          beastMode ? "bg-red-50" : "bg-white"
-        )}
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="text-center">
-          <div className={cn(
-            "w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4",
-            beastMode ? "bg-red-100" : "bg-yellow-100"
-          )}>
-            {beastMode ? (
-              <Zap className="w-8 h-8 text-red-600" />
-            ) : (
-              <Trophy className="w-8 h-8 text-yellow-600" />
-            )}
-          </div>
-          <h2 className={cn(
-            "text-2xl font-bold mb-2",
-            beastMode ? "text-red-900" : "text-gray-900"
-          )}>
-            {beastMode ? "Beast Mode Victory!" : "Victory!"}
-          </h2>
-          <p className={cn(
-            "mb-4",
-            beastMode ? "text-red-600" : "text-gray-600"
-          )}>
-            {beastMode ? (
-              "Wow, you won in Beast Mode. I salute you. You won 2 brags!"
-            ) : (
-              `Congratulations! You've completed the board with a perfect score of ${score}!`
-            )}
-          </p>
-          <button
-            onClick={onClose}
-            className={cn(
-              "w-full rounded-lg py-2 px-4 text-white transition-colors",
-              beastMode ? 
-                "bg-red-600 hover:bg-red-700" : 
-                "bg-blue-600 hover:bg-blue-700"
-            )}
-          >
-            Play Again
-          </button>
+    <Modal isOpen={isOpen} onClose={onOverlayClick} tone={beastMode ? 'beast' : 'gold'}>
+      <div className="text-center">
+        <div className={cn(
+          "mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full",
+          beastMode ? "bg-rose-500/20" : "bg-amber-400/20"
+        )}>
+          {beastMode ? <Zap className="h-10 w-10 text-rose-600 dark:text-rose-300" /> : <Trophy className="h-10 w-10 text-amber-600 dark:text-amber-300" />}
         </div>
+        <h2 className="font-display text-3xl font-bold">
+          {beastMode ? "Beast Mode Victory!" : "Perfect board!"}
+        </h2>
+        <p className="mt-2 mb-6 text-slate-600 dark:text-slate-300">
+          {beastMode
+            ? "You beat the clock. I salute you. +3 brags!"
+            : `All ${score} numbers in perfect order. Most games never get here. +1 brag!`}
+        </p>
+        <ModalButton onClick={onClose} variant={beastMode ? 'beast' : 'gold'}>Play again</ModalButton>
       </div>
-    </div>
+    </Modal>
   );
 }

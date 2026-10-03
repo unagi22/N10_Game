@@ -1,39 +1,49 @@
 import React, { useEffect, useState } from 'react';
-import { useGameStore } from './store/gameStore';
+import { useGameStore, hasValidSlot, isHelpAvailable, classicGamesToday, CLASSIC_DAILY_LIMIT } from './store/gameStore';
+import { DailyResultCard } from './components/DailyResultCard';
+import { ClassicLockedCard } from './components/ClassicLockedCard';
 import { GameBoard } from './components/GameBoard';
 import { GameStatus } from './components/GameStatus';
 import { VictoryModal } from './components/VictoryModal';
 import { GameOverModal } from './components/GameOverModal';
 import { BeastModeModal } from './components/BeastModeModal';
+import { DailyModal } from './components/DailyModal';
 import { ChangeNumberButton } from './components/ChangeNumberButton';
 import { GameControls } from './components/GameControls';
-import { cn } from './utils/cn';
 import { GameHeader } from './components/GameHeader';
+import { dailyNumber, todayKey } from './utils/daily';
 
 export default function App() {
-  const { 
-    slots, currentNumber, gameOver, victory, score, brags, 
-    beastMode, beastTimer, countdown,
-    placeNumber, generateNumber, resetGame, startBeastMode, updateBeastTimer, endBeastMode 
+  const {
+    slots, currentNumber, gameOver, victory, score, brags,
+    beastMode, beastTimer, countdown, dailyMode, daily, stats, lossReason,
+    helpCount, lastHelpTimestamp, classicToday,
+    placeNumber, generateNumber, resetGame, startBeastMode, updateBeastTimer, endBeastMode,
+    endStuck, startDaily,
   } = useGameStore();
 
   const [showVictoryModal, setShowVictoryModal] = useState(false);
   const [showGameOverModal, setShowGameOverModal] = useState(false);
   const [showBeastModeModal, setShowBeastModeModal] = useState(false);
+  const [showDailyModal, setShowDailyModal] = useState(false);
 
-  useEffect(() => {
-    if (victory) {
-      setTimeout(() => {
-        setShowVictoryModal(true);
-      }, 1000);
-    }
-  }, [victory]);
+  const todaysDaily = daily && daily.key === todayKey() ? daily : null;
+  const dailyDone = !!todaysDaily?.finished;
+  const stuck = currentNumber !== null && !gameOver && !victory && !hasValidSlot(slots, currentNumber);
+  const classicLeft = Math.max(0, CLASSIC_DAILY_LIMIT - classicGamesToday(classicToday));
+  const classicLocked = !dailyMode && !beastMode && countdown === null && score === 0 && !gameOver && !victory && classicLeft === 0;
+  const canChange = !beastMode && !dailyMode && isHelpAvailable(helpCount);
 
+  // Game end: show the right modal
   useEffect(() => {
-    if (gameOver && !victory && !showGameOverModal) {
-      setShowGameOverModal(true);
-    }
-  }, [gameOver, victory]);
+    if (!gameOver && !victory) return;
+    const timer = setTimeout(() => {
+      if (dailyMode) return; // Daily result shows in the card
+      if (victory) setShowVictoryModal(true);
+      else setShowGameOverModal(true);
+    }, victory ? 1000 : 700);
+    return () => clearTimeout(timer);
+  }, [gameOver, victory, dailyMode]);
 
   useEffect(() => {
     if (currentNumber === null && !gameOver && !victory && countdown === null) {
@@ -41,9 +51,14 @@ export default function App() {
     }
   }, [currentNumber, gameOver, victory, countdown, generateNumber]);
 
+  // Dead board: no spot fits the current number and it can't be changed
+  useEffect(() => {
+    if (stuck && !canChange) endStuck();
+  }, [stuck, canChange, endStuck]);
+
   useEffect(() => {
     let interval: number;
-    
+
     if (beastMode && countdown !== null) {
       interval = window.setInterval(() => {
         if (countdown > 1) {
@@ -54,28 +69,35 @@ export default function App() {
         }
       }, 1000);
     }
-    
+
     return () => clearInterval(interval);
-  }, [beastMode, countdown]);
+  }, [beastMode, countdown, generateNumber]);
 
   useEffect(() => {
     let interval: number;
-    
-    if (beastMode && beastTimer !== null && countdown === null && !gameOver) {
+
+    if (beastMode && beastTimer !== null && countdown === null && !gameOver && !victory) {
       interval = window.setInterval(() => {
-        if (beastTimer > 0) {
+        if (beastTimer > 1) {
           updateBeastTimer(beastTimer - 1);
         } else {
+          updateBeastTimer(0);
           endBeastMode();
         }
       }, 1000);
     }
-    
-    return () => clearInterval(interval);
-  }, [beastMode, beastTimer, countdown, gameOver, updateBeastTimer, endBeastMode]);
 
-  const handlePlayAgain = () => {
+    return () => clearInterval(interval);
+  }, [beastMode, beastTimer, countdown, gameOver, victory, updateBeastTimer, endBeastMode]);
+
+  const closeAllModals = () => {
     setShowVictoryModal(false);
+    setShowGameOverModal(false);
+    setShowDailyModal(false);
+  };
+
+  const handleNewGame = () => {
+    closeAllModals();
     resetGame();
   };
 
@@ -86,9 +108,10 @@ export default function App() {
   };
 
   const handleBeastModeClick = () => {
+    closeAllModals();
     const lastIntro = localStorage.getItem('lastBeastModeIntro');
     const today = new Date().toDateString();
-    
+
     if (lastIntro !== today) {
       setShowBeastModeModal(true);
     } else {
@@ -96,49 +119,67 @@ export default function App() {
     }
   };
 
-  const gameState = { 
-    slots, currentNumber, gameOver, victory, score, brags,
-    beastMode, beastTimer, countdown
+  const handleDailyClick = () => {
+    closeAllModals();
+    startDaily();
   };
 
+  const gameState = {
+    slots, currentNumber, gameOver, victory, score, brags,
+    beastMode, beastTimer, countdown, dailyMode, daily, stats, lossReason,
+    helpCount, lastHelpTimestamp, classicToday,
+  };
+
+  const finished = gameOver || victory;
+
   return (
-    <div className="min-h-screen bg-gray-50 pt-8 flex flex-col items-center px-4">
-      <div className="w-full max-w-4xl space-y-4">
+    <div className="min-h-[100dvh] flex justify-center px-4 pt-[max(1.25rem,env(safe-area-inset-top))] pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+      <main className="flex w-full max-w-md flex-col gap-4">
         <GameHeader />
 
-        <div className={cn(
-          "rounded-xl shadow-lg p-4",
-          beastMode ? "bg-red-100" : "bg-white"
-        )}>
-          <GameControls 
-            score={score}
-            gameOver={gameOver}
-            beastMode={beastMode}
-            onBeastMode={handleBeastModeClick}
-            onReset={resetGame}
-          />
+        {dailyMode && todaysDaily?.finished ? (
+          <DailyResultCard daily={todaysDaily} dailyNumber={dailyNumber()} onShowStats={() => setShowDailyModal(true)} />
+        ) : classicLocked ? (
+          <ClassicLockedCard />
+        ) : (
+          <GameStatus state={gameState} stuck={stuck} dailyNumber={dailyNumber()} />
+        )}
 
-          <div className="flex flex-col md:flex-row md:gap-4">
-            <div className="mb-4 md:mb-0 md:w-1/3 space-y-2">
-              <GameStatus state={gameState} />
-              {!beastMode && !victory && !gameOver && (
-                <ChangeNumberButton />
-              )}
-            </div>
-            
-            <div className="md:w-2/3">
-              <GameBoard 
-                gameState={gameState} 
-                onSlotSelect={placeNumber}
-              />
-            </div>
-          </div>
+        <GameBoard gameState={gameState} onSlotSelect={placeNumber} disabled={classicLocked} />
+
+        <div className="min-h-[2.75rem]">
+          {classicLocked || (finished && dailyMode) ? null : finished ? (
+            <button
+              onClick={beastMode ? handleBeastModeClick : handleNewGame}
+              className="h-11 w-full rounded-2xl bg-indigo-500 font-semibold text-white shadow-lg shadow-indigo-500/25 transition hover:bg-indigo-400 active:scale-[0.98]"
+            >
+              {beastMode ? 'Beast Mode rematch' : classicLeft === 0 ? 'Done for today' : `Play again (${classicLeft} left today)`}
+            </button>
+          ) : dailyMode ? (
+            <p className="py-3 text-center text-xs text-slate-400">
+              One attempt per day, no number changes. Everyone gets the same numbers.
+            </p>
+          ) : !beastMode && countdown === null ? (
+            <ChangeNumberButton highlight={stuck} />
+          ) : null}
         </div>
-      </div>
+
+        <div className="mt-auto">
+          <GameControls
+            beastMode={beastMode}
+            dailyMode={dailyMode}
+            dailyDone={dailyDone}
+            classicLeft={classicLeft}
+            onDaily={handleDailyClick}
+            onBeastMode={handleBeastModeClick}
+            onReset={handleNewGame}
+          />
+        </div>
+      </main>
 
       <VictoryModal
         isOpen={showVictoryModal}
-        onClose={handlePlayAgain}
+        onClose={handleNewGame}
         onOverlayClick={() => setShowVictoryModal(false)}
         score={score}
         beastMode={beastMode}
@@ -146,16 +187,15 @@ export default function App() {
 
       <GameOverModal
         isOpen={showGameOverModal}
-        onClose={() => {
-          setShowGameOverModal(false);
-          resetGame();
-        }}
+        onClose={handleNewGame}
         onOverlayClick={() => setShowGameOverModal(false)}
-        onBeastMode={() => {
-          setShowGameOverModal(false);
-          handleBeastModeClick();
-        }}
+        onBeastMode={handleBeastModeClick}
         wasBeastMode={beastMode}
+        score={score}
+        bestScore={stats.bestScore}
+        lossReason={lossReason}
+        lastNumber={currentNumber}
+        classicLeft={classicLeft}
       />
 
       <BeastModeModal
@@ -163,6 +203,15 @@ export default function App() {
         onClose={() => setShowBeastModeModal(false)}
         onOverlayClick={() => setShowBeastModeModal(false)}
         onStart={handleBeastModeStart}
+      />
+
+      <DailyModal
+        isOpen={showDailyModal}
+        onClose={() => setShowDailyModal(false)}
+        onPlayClassic={handleNewGame}
+        daily={todaysDaily}
+        dailyNumber={dailyNumber()}
+        stats={stats}
       />
     </div>
   );

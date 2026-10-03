@@ -1,3 +1,26 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+html, body, #root { height: 100%; }
+body {
+  @apply bg-slate-50 text-slate-900 antialiased;
+  background-image:
+    radial-gradient(60rem 30rem at 50% -10%, rgba(99, 102, 241, 0.12), transparent 60%),
+    radial-gradient(40rem 20rem at 100% 100%, rgba(236, 72, 153, 0.06), transparent 60%);
+  background-attachment: fixed;
+  -webkit-tap-highlight-color: transparent;
+}
+.dark body {
+  @apply bg-ink-950 text-slate-100;
+  background-image:
+    radial-gradient(60rem 30rem at 50% -10%, rgba(99, 102, 241, 0.22), transparent 60%),
+    radial-gradient(40rem 20rem at 100% 100%, rgba(236, 72, 153, 0.10), transparent 60%);
+}
+html { color-scheme: light; }
+html.dark { color-scheme: dark; }
+button { touch-action: manipulation; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}

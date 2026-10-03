@@ -1,40 +1,53 @@
 import React, { useState } from 'react';
-import { Trophy } from 'lucide-react';
+import { Moon, Sun, Trophy } from 'lucide-react';
+import { useTheme } from '../utils/theme';
 import { useGameStore } from '../store/gameStore';
 import { BragsModal } from './BragsModal';
 
 export function GameHeader() {
   const brags = useGameStore(state => state.brags);
+  const stats = useGameStore(state => state.stats);
   const [showBragsModal, setShowBragsModal] = useState(false);
+  const { theme, toggle } = useTheme();
 
   return (
-    <div className="flex flex-col items-center mb-6 relative w-full">
-      <div className="absolute right-0 top-1/2 -translate-y-1/2 sm:top-0 sm:translate-y-0">
-        <button
-          onClick={() => setShowBragsModal(true)}
-          className="flex items-center gap-1.5 bg-yellow-50 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl shadow-sm hover:bg-yellow-100 transition-colors"
-        >
-          <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-600" />
-          <div className="flex flex-col items-center">
-            <span className="text-[10px] sm:text-xs font-medium text-yellow-700">Brags</span>
-            <span className="text-lg sm:text-xl font-bold text-yellow-800">{brags}</span>
-          </div>
-        </button>
-      </div>
-      
-      <div className="text-center max-w-md mx-auto px-8 sm:px-4">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2">N10 Game</h1>
-        <p className="text-xs sm:text-sm text-gray-600 leading-snug max-w-[200px] sm:max-w-none mx-auto">
-          Place random numbers (1-100) in just 10 spots... in perfect order! Ridiculously hard? Yes. But hey, if you win, brag all you want - you've earned it! 🏆
+    <header className="flex items-start justify-between gap-3">
+      <div>
+        <h1 className="font-display text-3xl font-bold tracking-tight">
+          N<span className="text-indigo-600 dark:text-indigo-400">10</span>
+        </h1>
+        <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400 leading-snug max-w-[15rem]">
+          10 random numbers (1-100). 10 spots. Perfect order. Good luck.
         </p>
+      </div>
+
+      <div className="flex items-center gap-2">
+      <button
+        onClick={toggle}
+        className="flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-100 active:scale-95 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10"
+        aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+      >
+        {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+      </button>
+      <button
+        onClick={() => setShowBragsModal(true)}
+        className="flex items-center gap-2 rounded-2xl border border-amber-400/20 bg-amber-400/10 px-3 py-2 transition hover:bg-amber-400/20 active:scale-95"
+        aria-label={`Brags: ${brags}. Open stats`}
+      >
+        <Trophy className="h-5 w-5 text-amber-600 dark:text-amber-300" />
+        <div className="text-left leading-none">
+          <span className="block text-[10px] font-medium uppercase tracking-wider text-amber-700/80 dark:text-amber-200/80">Brags</span>
+          <span className="font-display text-lg font-bold text-amber-700 dark:text-amber-200">{brags}</span>
+        </div>
+      </button>
       </div>
 
       <BragsModal
         isOpen={showBragsModal}
         onClose={() => setShowBragsModal(false)}
-        onOverlayClick={() => setShowBragsModal(false)}
         brags={brags}
+        stats={stats}
       />
-    </div>
+    </header>
   );
 }

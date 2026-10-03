@@ -1,5 +1,7 @@
 import React from 'react';
-import { Zap } from 'lucide-react';
+import { Zap, RotateCcw } from 'lucide-react';
+import { Modal, ModalButton } from './Modal';
+import { TOTAL_SLOTS } from '../constants/game';
 
 interface GameOverModalProps {
   isOpen: boolean;
@@ -7,49 +9,51 @@ interface GameOverModalProps {
   onOverlayClick: () => void;
   onBeastMode: () => void;
   wasBeastMode: boolean;
+  score: number;
+  bestScore: number;
+  lossReason: 'wrong' | 'stuck' | 'timeout' | null;
+  lastNumber: number | null;
+  classicLeft: number;
 }
 
-export function GameOverModal({ isOpen, onClose, onOverlayClick, onBeastMode, wasBeastMode }: GameOverModalProps) {
-  if (!isOpen) return null;
+const MESSAGES = ['Ouch.', 'So close... not really.', 'The numbers win again.', 'That one hurt.'];
+
+export function GameOverModal({
+  isOpen, onClose, onOverlayClick, onBeastMode, wasBeastMode, score, bestScore, lossReason, lastNumber, classicLeft,
+}: GameOverModalProps) {
+  const reason =
+    lossReason === 'timeout' ? 'Time ran out.'
+    : lossReason === 'stuck' ? `No spot left for ${lastNumber}.`
+    : `${lastNumber} didn't fit there.`;
+  const headline = score >= 8 ? 'So close!' : MESSAGES[score % MESSAGES.length];
 
   return (
-    <div 
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-      onClick={onOverlayClick}
-    >
-      <div 
-        className="bg-white rounded-xl p-6 max-w-sm w-full mx-4"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="text-center">
-          <h2 className="text-3xl font-bold text-gray-900 mb-6">Game Over!</h2>
-          <div className="space-y-3">
-            <button
-              onClick={onClose}
-              className="w-full bg-blue-600 text-white rounded-lg py-2 px-4 hover:bg-blue-700 transition-colors"
-            >
-              New Game
-            </button>
-            {wasBeastMode ? (
-              <button
-                onClick={onBeastMode}
-                className="w-full bg-red-600 text-white rounded-lg py-2 px-4 hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
-              >
-                <Zap className="w-5 h-5" />
-                New Beast Mode Game
-              </button>
-            ) : (
-              <button
-                onClick={onBeastMode}
-                className="w-full bg-red-600 text-white rounded-lg py-2 px-4 hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
-              >
-                <Zap className="w-5 h-5" />
-                Try Beast Mode
-              </button>
-            )}
+    <Modal isOpen={isOpen} onClose={onOverlayClick} tone={wasBeastMode ? 'beast' : 'default'}>
+      <div className="text-center">
+        <p className="text-sm text-slate-500 dark:text-slate-400">{reason}</p>
+        <h2 className="mt-1 font-display text-3xl font-bold">{headline}</h2>
+        <div className="my-5 flex justify-center gap-3">
+          <div className="flex-1 rounded-2xl bg-slate-100 dark:bg-white/5 py-3">
+            <p className="font-display text-3xl font-bold">{score}<span className="text-lg text-slate-400 dark:text-slate-500">/{TOTAL_SLOTS}</span></p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">This game</p>
           </div>
+          {!wasBeastMode && (
+            <div className="flex-1 rounded-2xl bg-slate-100 dark:bg-white/5 py-3">
+              <p className="font-display text-3xl font-bold">{bestScore}<span className="text-lg text-slate-400 dark:text-slate-500">/{TOTAL_SLOTS}</span></p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Best</p>
+            </div>
+          )}
+        </div>
+        <div className="space-y-2.5">
+          <ModalButton onClick={onClose}>
+            <RotateCcw className="h-5 w-5" />
+            {classicLeft === 0 ? 'Done for today' : `New game (${classicLeft} left today)`}
+          </ModalButton>
+          <ModalButton onClick={onBeastMode} variant={wasBeastMode ? 'beast' : 'ghost'}>
+            <Zap className="h-5 w-5" /> {wasBeastMode ? 'Beast Mode rematch' : 'Try Beast Mode'}
+          </ModalButton>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }
